@@ -9,14 +9,10 @@ import (
 	"strings"
 )
 
-const (
-	MAX_RED   = 12
-	MAX_GREEN = 13
-	MAX_BLUE  = 14
-)
-
-type PossibleGame struct {
-	id int
+type PossibleGamePowerSet struct {
+	r int
+	g int
+	b int
 }
 
 func main() {
@@ -29,12 +25,9 @@ func main() {
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
 
-	PossibleGamesSet := map[PossibleGame]bool{}
-
-	regexGameId := regexp.MustCompile(`Game (\d+):`)
+	PossibleGames := make([]PossibleGamePowerSet, 0)
 
 	for fileScanner.Scan() {
-		// split the line by semicolon
 		splitByGameMatch := strings.Split(fileScanner.Text(), ";")
 
 		regexRed := regexp.MustCompile(`(\d+) red`)
@@ -45,8 +38,12 @@ func main() {
 		bluePossible := true
 		greenPossible := true
 
+		maxRed := 0
+		maxBlue := 0
+		maxGreen := 0
+
 		for _, splitSemi := range splitByGameMatch {
-			fmt.Println("game match: ", splitSemi)
+			fmt.Println("game match:", splitSemi)
 
 			numRed := regexRed.FindStringSubmatch(splitSemi)
 			numBlue := regexBlue.FindStringSubmatch(splitSemi)
@@ -54,46 +51,35 @@ func main() {
 
 			if len(numRed) > 0 {
 				foundRed, _ := strconv.Atoi(numRed[1])
-				if foundRed > MAX_RED {
-					fmt.Println("foundRed makes game impossible: ", foundRed)
-					redPossible = false
-					break
+				if (foundRed > maxRed) && redPossible {
+					fmt.Println("found a new max red:", foundRed)
+					maxRed = foundRed
 				}
 			}
 
 			if len(numBlue) > 0 {
 				foundBlue, _ := strconv.Atoi(numBlue[1])
-				if foundBlue > MAX_BLUE {
-					fmt.Println("foundBlue makes game impossible: ", foundBlue)
-					bluePossible = false
-					break
+				if (foundBlue > maxBlue) && bluePossible {
+					maxBlue = foundBlue
 				}
 			}
 
 			if len(numGreen) > 0 {
 				foundGreen, _ := strconv.Atoi(numGreen[1])
-				if foundGreen > MAX_GREEN {
-					fmt.Println("foundGreen makes game impossible: ", foundGreen)
-					greenPossible = false
-					break
+				if foundGreen > maxGreen && greenPossible {
+					maxGreen = foundGreen
 				}
 			}
 		}
 
 		if redPossible && bluePossible && greenPossible {
-			gameId := regexGameId.FindStringSubmatch(fileScanner.Text())
-			gameIdint, _ := strconv.Atoi(strings.Trim(gameId[1], " "))
-			fmt.Println("game is possible:", strings.Trim(gameId[1], " "))
-			_, ok := PossibleGamesSet[PossibleGame{gameIdint}]
-			if !ok {
-				PossibleGamesSet[PossibleGame{gameIdint}] = true
-			}
+			PossibleGames = append(PossibleGames, PossibleGamePowerSet{maxRed, maxBlue, maxGreen})
 		}
-
-		sum := 0
-		for g := range PossibleGamesSet {
-			sum += g.id
-		}
-		fmt.Println("sum: ", sum)
 	}
+
+	sum := 0
+	for _, g := range PossibleGames {
+		sum += g.r * g.g * g.b
+	}
+	fmt.Println("sum:", sum)
 }
